@@ -783,19 +783,21 @@ namespace mathLib {
 
 	Matrix PerPro(float height, float width, float radians, float Far, float Near) {
 		Matrix PerPro;
+		float aspectRatio = width / height;
+		float fovScale = 1.0f / tan(radians / 2.0f);
 
-		PerPro[0] = 1 / (tan(radians / 2) * (width / height));
+		PerPro[0] = fovScale / aspectRatio;
 		PerPro[1] = 0;
 		PerPro[2] = 0;
 		PerPro[3] = 0;
 		PerPro[4] = 0;
-		PerPro[5] = 1 / tan(radians / 2);
+		PerPro[5] = fovScale;
 		PerPro[6] = 0;
 		PerPro[7] = 0;
 		PerPro[8] = 0;
 		PerPro[9] = 0;
-		PerPro[10] = (-Far) / (Far - Near);
-		PerPro[11] = ((-Far) * Near) / (Far - Near);
+		PerPro[10] = Far / (Far - Near);
+		PerPro[11] = (-Far * Near) / (Far - Near);
 		PerPro[12] = 0;
 		PerPro[13] = 0;
 		PerPro[14] = -1;

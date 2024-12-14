@@ -36,13 +36,13 @@
     <ClInclude Include="shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ShaderReflection (2).h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ShaderReflection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="window.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GEMLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -3,6 +3,7 @@
 #include "Geometry.h"
 #include "DXcore.h"
 #include "shader.h"
+#include "GEMLoader.h"
 
 struct Vertex
 {
@@ -52,7 +53,7 @@ public:
 	}
 };
 
-class Mash {
+class Mesh {
 public:
 	ID3D11Buffer* indexBuffer;
 	ID3D11Buffer* vertexBuffer;
@@ -93,7 +94,7 @@ public:
 
 class Plane {
 public:
-	Mash mash;
+	Mesh mash;
 	mathLib::Matrix planeWorld;
 	mathLib::Matrix vp;
 	float t = 0.0f;
@@ -134,5 +135,43 @@ public:
 	}
 };
 
+class LoadMesh {
+public:
+	std::vector<Mesh> meshes;
+	mathLib::Matrix planeWorld;
+	mathLib::Matrix vp;
+	float t = 0.0f;
 
+	void Init(DxCore& core, std::string filename) {
+		GEMLoader::GEMModelLoader loader;
+		std::vector<GEMLoader::GEMMesh> gemmeshes;
+		loader.load(filename, gemmeshes);
+		for (int i = 0; i < gemmeshes.size(); i++) {
+			Mesh mesh;
+			std::vector<STATIC_VERTEX> vertices;
+			for (int j = 0; j < gemmeshes[i].verticesStatic.size(); j++) {
+				STATIC_VERTEX v;
+				memcpy(&v, &gemmeshes[i].verticesStatic[j], sizeof(STATIC_VERTEX));
+				vertices.push_back(v);
+			}
+			mesh.Init(vertices, gemmeshes[i].indices, core);
+			meshes.push_back(mesh);
+		}
+	}
+
+	void draw(Shader* shader, DxCore& core) {
+		mathLib::Vec3 from = mathLib::Vec3(11 * cos(t), 10, 20 * sin(t));
+		mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
+		mathLib::Vec3 up = mathLib::Vec3(0.0f, 2.0f, 0.0f);
+		vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 20.f, 200.f, 0.1f);
+		shader->updateConstantVS("StaticModel", "staticMeshBuffer", "W", &planeWorld);
+		shader->updateConstantVS("StaticModel", "staticMeshBuffer", "VP", &vp);
+
+		for (int i = 0; i < meshes.size(); i++)
+		{
+			meshes[i].draw(core);
+		}
+
+	}
+};
 

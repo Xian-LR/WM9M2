@@ -130,11 +130,11 @@
     <ClInclude Include="adapter.h" />
     <ClInclude Include="dxCore.h" />
     <ClInclude Include="GamesEngineeringBase.h" />
+    <ClInclude Include="GEMLoader.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="mathLib.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="shader.h" />
-    <ClInclude Include="ShaderReflection (2).h" />
     <ClInclude Include="ShaderReflection.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>

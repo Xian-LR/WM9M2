@@ -4,8 +4,7 @@ Window* window;
 
 //processes messages sent to a window
 //用于处理各种事件，如鼠标点击、键盘输入等
-static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
+LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg)
 	{
 	case WM_DESTROY:
@@ -49,7 +48,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
 	}
 
 	default:
+	{
 		return DefWindowProc(hwnd, msg, wParam, lParam);
+	}
+
 	}
 }
 
