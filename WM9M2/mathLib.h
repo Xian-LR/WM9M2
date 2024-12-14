@@ -781,6 +781,28 @@ namespace mathLib {
 		return lookAt(from, to, up).invert();
 	}
 
+	Matrix PerPro(float height, float width, float radians, float Far, float Near) {
+		Matrix PerPro;
+
+		PerPro[0] = 1 / (tan(radians / 2) * (width / height));
+		PerPro[1] = 0;
+		PerPro[2] = 0;
+		PerPro[3] = 0;
+		PerPro[4] = 0;
+		PerPro[5] = 1 / tan(radians / 2);
+		PerPro[6] = 0;
+		PerPro[7] = 0;
+		PerPro[8] = 0;
+		PerPro[9] = 0;
+		PerPro[10] = (-Far) / (Far - Near);
+		PerPro[11] = ((-Far) * Near) / (Far - Near);
+		PerPro[12] = 0;
+		PerPro[13] = 0;
+		PerPro[14] = -1;
+		PerPro[15] = 0;
+		return PerPro;
+	}
+
 	template<typename t>
 	t perspectiveCorrectInterpolateAttribute(t a0, t a1, t a2, float v0_w, float v1_w, float v2_w, float alpha, float beta, float gamma)
 	{

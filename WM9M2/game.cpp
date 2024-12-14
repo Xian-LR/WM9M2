@@ -8,22 +8,24 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nC
 	Window canvas;
 	DxCore dx;
 	ShaderManager shaders;
-	Triangle t;
+	Plane t;
 	GamesEngineeringBase::Timer tim;
 	float dt;
 
 	ConstantBuffer* constBufferCPU = new ConstantBuffer();
 	constBufferCPU->time = 0;
-
-	t.Init();
+	
 	canvas.Init("MyWindow", 1024, 768);
 	dx.Init(1024, 768, canvas.hwnd);
+	t.Init(dx);
 
-	std::string s = "Resources/vertex_shader.txt";
+	std::string vs = "Resources/vsshader.txt";
+	std::string ps = "Resources/psshader.txt";
 	std::string shaderName = "MyShader";
-	shaders.load(shaderName, s, s, dx.device);
+
+	shaders.load(shaderName, vs, ps, dx);
 	Shader* shader = shaders.getShader(shaderName);
-	t.createBuffer(dx.device);
+
 
 	while (true) {
 		dx.clear();
@@ -33,10 +35,12 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nC
 		canvas.processMessages();
 
 		// 将更新应用到 GPU
-		shader->UpdateConstantBuffer(dx.devicecontext);
-		shader->apply(dx.devicecontext);
+		
+		shader->apply(dx);
+		shader->UpdateConstantBuffer(dx);
 
-		t.draw(dx.devicecontext);
+		t.t += dt;
+		t.draw(&*shader, dx);
 		dx.present();
 	}
 }

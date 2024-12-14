@@ -144,7 +144,9 @@
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Resources\psshader.txt" />
     <Text Include="Resources\vertex_shader.txt" />
+    <Text Include="Resources\vsshader.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

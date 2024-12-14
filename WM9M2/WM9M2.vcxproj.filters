@@ -61,5 +61,11 @@
     <Text Include="Resources\vertex_shader.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="Resources\vsshader.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="Resources\psshader.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>
