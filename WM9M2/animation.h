@@ -154,8 +154,9 @@ public:
 	mathLib::Matrix vp;
 	float t = 0.0f;
 	AnimationInstance instance;
+	std::vector<std::string> textureFilenames;
 
-	void Init(DxCore& core, std::string filename) {
+	void Init(DxCore& core, std::string filename, TextureManager& textures) {
 		GEMLoader::GEMModelLoader loader;
 		std::vector<GEMLoader::GEMMesh> gemmeshes;
 		GEMLoader::GEMAnimation gemanimation;
@@ -168,6 +169,11 @@ public:
 				memcpy(&v, &gemmeshes[i].verticesAnimated[j], sizeof(ANIMATED_VERTEX));
 				vertices.push_back(v);
 			}
+			textureFilenames.push_back(gemmeshes[i].material.find("diffuse").getValue());
+			textures.loadTexture(gemmeshes[i].material.find("diffuse").getValue(), &core);
+
+			// Load texture with filename: gemmeshes[i].material.find("diffuse").getValue()
+
 			mesh.Init(vertices, gemmeshes[i].indices, core);
 			meshes.push_back(mesh);
 		}
@@ -208,7 +214,7 @@ public:
 		instance.animation = &animation;
 	}
 
-	void draw(Shader* shader, DxCore& core, float dt) {
+	void draw(Shader* shader, DxCore& core, float dt, TextureManager& textures) {
 		mathLib::Vec3 from = mathLib::Vec3(11 * cos(t), 5, 11 * sinf(t));
 		mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
 		mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);	
@@ -221,6 +227,7 @@ public:
 		shader->apply(core);
 		for (int i = 0; i < meshes.size(); i++)
 		{
+			shader->updateTexturePS(core, "tex", textures.find(textureFilenames[i]));
 			meshes[i].draw(core);
 		}
 	}

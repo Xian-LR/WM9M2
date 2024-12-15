@@ -2,6 +2,7 @@
 #include <d3d11.h>
 #include "shader.h"
 #include "GEMLoader.h"
+#include "texture.h"
 
 struct Vertex
 {

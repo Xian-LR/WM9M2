@@ -10,6 +10,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nC
 	LoadAnimation animation;
 	GamesEngineeringBase::Timer tim;
 	float dt;
+	TextureManager textures;
 	//ConstantBuffer* constBufferCPU = new ConstantBuffer();
 	//constBufferCPU->time = 0;
 
@@ -24,8 +25,6 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nC
 	canvas.Init("MyWindow", 1024, 768);
 	dx.Init(1024, 768, canvas.hwnd);
 
-	//mesh.Init(dx, model1);
-	animation.Init(dx, model2);
 
 
 	//shaders.load(shader1, vs1, ps, dx,1);
@@ -33,6 +32,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nC
 	//Shader* shaderst = shaders.getShader(shader1);
 	Shader* shaderani = shaders.getShader(shader2);
 
+	//mesh.Init(dx, model1);
+	animation.Init(dx, model2, textures);
 	// ...
 	while (true) {
 	
@@ -50,7 +51,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, int nC
 		//mesh.draw(&*shaderst, dx);
 		
 		animation.t += dt;
-		animation.draw(&*shaderani, dx,dt);
+		animation.draw(&*shaderani, dx,dt, textures);
 
 
 		dx.present();

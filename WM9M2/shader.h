@@ -26,6 +26,7 @@ public:
 	std::vector<ConstantBuffer> psConstantBuffers;
 	std::map<std::string, int> textureBindPointsVS;
 	std::map<std::string, int> textureBindPointsPS;
+	std::map<std::string, int> textureBindPoints;
 
 	void initConstBuffer(int sizeInBytes, DxCore& devicecontext) {
 		constBufferCPU.time = 0.f;
@@ -49,24 +50,24 @@ public:
 		}
 	}
 
-	void updateConstantVS(std::string name, std::string constBuffferName, std::string variableName, void* data) {
-		for (int i = 0; i < vsConstantBuffers.size(); i++)
-		{
-			if (vsConstantBuffers[i].name == constBuffferName)
-			{
-				vsConstantBuffers[i].update(variableName, data);
-			}
-		}
-	}
-
-	//void updateConstantVS(std::string name, const std::string& cbName, const std::string& variableName, void* data) {
-	//	for (auto& cb : vsConstantBuffers) {
-	//		if (cb.name == cbName) {
-	//			cb.update(variableName, data);
-	//			return;
+	//void updateConstantVS(std::string name, std::string constBuffferName, std::string variableName, void* data) {
+	//	for (int i = 0; i < vsConstantBuffers.size(); i++)
+	//	{
+	//		if (vsConstantBuffers[i].name == constBuffferName)
+	//		{
+	//			vsConstantBuffers[i].update(variableName, data);
 	//		}
 	//	}
 	//}
+
+	void updateConstantVS(std::string name, const std::string& cbName, const std::string& variableName, void* data) {
+		for (auto& cb : vsConstantBuffers) {
+			if (cb.name == cbName) {
+				cb.update(variableName, data);
+				return;
+			}
+		}
+	}
 
 	void updateConstantPS(std::string name, const std::string& cbName, const std::string& variableName, void* data) {
 		for (auto& cb : psConstantBuffers) {
@@ -75,6 +76,10 @@ public:
 				return;
 			}
 		}
+	}
+
+	void updateTexturePS(DxCore& core, std::string name, ID3D11ShaderResourceView* srv) {
+		core.devicecontext->PSSetShaderResources(textureBindPoints[name], 1, &srv);
 	}
 
 	//compile vertex shader
@@ -105,7 +110,7 @@ public:
 		// 使用反射系统提取常量缓冲区和纹理绑定点信息
 		ConstantBufferReflection reflection;
 		reflection.build(&core, shader, vsConstantBuffers, textureBindPointsVS, ShaderStage::VertexShader);
-		//shader->Release();
+		shader->Release();
 	}
 
 	//compile vertex shader
@@ -135,7 +140,7 @@ public:
 		// 使用反射系统提取常量缓冲区和纹理绑定点信息
 		ConstantBufferReflection reflection;
 		reflection.build(&core, shader, vsConstantBuffers, textureBindPointsVS, ShaderStage::VertexShader);
-		//shader->Release();
+		shader->Release();
 	}
 
 	//compile pixel shader
@@ -153,7 +158,7 @@ public:
 		core.device->CreatePixelShader(shader->GetBufferPointer(), shader->GetBufferSize(), NULL, &pixelShader);
 		ConstantBufferReflection reflection;
 		reflection.build(&core, shader, psConstantBuffers, textureBindPointsPS, ShaderStage::PixelShader);
-		//shader->Release();
+		shader->Release();
 	}
 	//Send shaders to GPU
 	void apply(DxCore& core)  {
@@ -199,6 +204,8 @@ public:
 	void load(std::string& name, std::string& vsFilename, std::string& psFilename, DxCore& core, int model) {
 		Shader shader;
 		ID3DBlob* shaderBlob = nullptr;
+		shader.initConstBuffer(sizeof(ConstantBuffer) + (16 - sizeof(ConstantBuffer) % 16), core);
+
 		if (model == 1) {
 			shader.loadVS(vsFilename, core);
 		}
