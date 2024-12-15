@@ -1,7 +1,5 @@
 #pragma once
 #include <d3d11.h>
-#include "Geometry.h"
-#include "DXcore.h"
 #include "shader.h"
 #include "GEMLoader.h"
 
@@ -10,6 +8,26 @@ struct Vertex
 	// screen space position and colour
 	mathLib::Vec3 position;
 	mathLib::Color color;
+};
+
+struct STATIC_VERTEX
+{
+	mathLib::Vec3 pos;
+	mathLib::Vec3 normal;
+	mathLib::Vec3 tangent;
+	float tu;
+	float tv;
+};
+
+struct ANIMATED_VERTEX
+{
+	mathLib::Vec3 pos;
+	mathLib::Vec3 normal;
+	mathLib::Vec3 tangent;
+	float tu;
+	float tv;
+	unsigned int bonesIDs[4];
+	float boneWeights[4];
 };
 
 class Triangle {
@@ -82,6 +100,12 @@ public:
 	{
 		Init(&vertices[0], sizeof(STATIC_VERTEX), vertices.size(), &indices[0], indices.size(), device);
 	}
+
+	void Init(std::vector<ANIMATED_VERTEX> vertices, std::vector<unsigned int> indices, DxCore& device)
+	{
+		Init(&vertices[0], sizeof(ANIMATED_VERTEX), vertices.size(), &indices[0], indices.size(), device);
+	}
+
 
 	void draw(DxCore& devicecontext) {
 		UINT offsets = 0;
@@ -174,4 +198,5 @@ public:
 
 	}
 };
+
 

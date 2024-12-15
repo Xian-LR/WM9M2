@@ -108,7 +108,7 @@ public:
 		swapchain->Present(0, 0);
 	}
 
-private:
+
 	// configure the rasterizer
 	void rasterizerConfig() {
 		D3D11_RASTERIZER_DESC rsdesc;

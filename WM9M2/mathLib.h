@@ -1,5 +1,4 @@
 ﻿#pragma once
-#pragma once
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <memory.h>
@@ -557,7 +556,18 @@ namespace mathLib {
 
 	class Quaternion {
 	public:
-		float w, x, y, z;
+
+		union {
+			struct {
+				float w;
+				float x;
+				float y;
+				float z;
+			};
+			float q[4];
+		};
+
+		
 
 		// Constructor
 		Quaternion(float _w = 1, float _x = 0, float _y = 0, float _z = 0)
@@ -626,17 +636,33 @@ namespace mathLib {
 
 		// Convert to rotation matrix
 		Matrix toMatrix() const {
-			Matrix mat;
-			mat.a[0][0] = 1 - 2 * (SQ(y) + SQ(z));
-			mat.a[0][1] = 2 * (x * y - z * w);
-			mat.a[0][2] = 2 * (x * z + y * w);
-			mat.a[1][0] = 2 * (x * y + z * w);
-			mat.a[1][1] = 1 - 2 * (SQ(x) + SQ(z));
-			mat.a[1][2] = 2 * (y * z - x * w);
-			mat.a[2][0] = 2 * (x * z - y * w);
-			mat.a[2][1] = 2 * (y * z + x * w);
-			mat.a[2][2] = 1 - 2 * (SQ(x) + SQ(y));
-			return mat;
+			float xx = q[0] * q[0];
+			float xy = q[0] * q[1];
+			float xz = q[0] * q[2];
+			float yy = q[1] * q[1];
+			float zz = q[2] * q[2];
+			float yz = q[1] * q[2];
+			float wx = q[3] * q[0];
+			float wy = q[3] * q[1];
+			float wz = q[3] * q[2];
+			Matrix matrix;
+			matrix.m[0] = 1.0f - 2.0f * (yy + zz);
+			matrix.m[1] = 2.0f * (xy - wz);
+			matrix.m[2] = 2.0f * (xz + wy);
+			matrix.m[3] = 0.0;
+			matrix.m[4] = 2.0f * (xy + wz);
+			matrix.m[5] = 1.0f - 2.0f * (xx + zz);
+			matrix.m[6] = 2.0f * (yz - wx);
+			matrix.m[7] = 0.0;
+			matrix.m[8] = 2.0f * (xz - wy);
+			matrix.m[9] = 2.0f * (yz + wx);
+			matrix.m[10] = 1.0f - 2.0f * (xx + yy);
+			matrix.m[11] = 0.0;
+			matrix.m[12] = 0;
+			matrix.m[13] = 0;
+			matrix.m[14] = 0;
+			matrix.m[15] = 1;
+			return matrix;
 		}
 
 		// Print quaternion
@@ -758,22 +784,22 @@ namespace mathLib {
 		Vec3 u = dir.cross(right);
 
 		Matrix mat;
-		mat.a[0][0] = right.x;
-		mat.a[0][1] = right.y;
-		mat.a[0][2] = right.z;
-		mat.a[0][3] = -from.dot(right);
-		mat.a[1][0] = u.x;
-		mat.a[1][1] = u.y;
-		mat.a[1][2] = u.z;
-		mat.a[1][3] = -from.dot(u);
-		mat.a[2][0] = dir.x;
-		mat.a[2][1] = dir.y;
-		mat.a[2][2] = dir.z;
-		mat.a[2][3] = -from.dot(dir);
-		mat.a[3][0] = 0.0f;
-		mat.a[3][1] = 0.0f;
-		mat.a[3][2] = 0.0f;
-		mat.a[3][3] = 1.0f;
+		mat.m[0] = right.x;
+		mat.m[1] = right.y;
+		mat.m[2] = right.z;
+		mat.m[3] = -from.dot(right);
+		mat.m[4] = u.x;
+		mat.m[5] = u.y;
+		mat.m[6] = u.z;
+		mat.m[7] = -from.dot(u);
+		mat.m[8] = dir.x;
+		mat.m[9] = dir.y;
+		mat.m[10] = dir.z;
+		mat.m[11] = -from.dot(dir);
+		mat.m[12] = 0.0f;
+		mat.m[13] = 0.0f;
+		mat.m[14] = 0.0f;
+		mat.m[15] = 1.0f;
 		return mat;
 	}
 
@@ -786,22 +812,22 @@ namespace mathLib {
 		float aspectRatio = width / height;
 		float fovScale = 1.0f / tan(radians / 2.0f);
 
-		PerPro[0] = fovScale / aspectRatio;
-		PerPro[1] = 0;
-		PerPro[2] = 0;
-		PerPro[3] = 0;
-		PerPro[4] = 0;
-		PerPro[5] = fovScale;
-		PerPro[6] = 0;
-		PerPro[7] = 0;
-		PerPro[8] = 0;
-		PerPro[9] = 0;
-		PerPro[10] = Far / (Far - Near);
-		PerPro[11] = (-Far * Near) / (Far - Near);
-		PerPro[12] = 0;
-		PerPro[13] = 0;
-		PerPro[14] = -1;
-		PerPro[15] = 0;
+		PerPro.m[0] = fovScale / aspectRatio;
+		PerPro.m[1] = 0;
+		PerPro.m[2] = 0;
+		PerPro.m[3] = 0;
+		PerPro.m[4] = 0;
+		PerPro.m[5] = fovScale;
+		PerPro.m[6] = 0;
+		PerPro.m[7] = 0;
+		PerPro.m[8] = 0;
+		PerPro.m[9] = 0;
+		PerPro.m[10] = -(Far + Near) / (Far - Near);
+		PerPro.m[11] = -(2 * Far * Near) / (Far - Near);
+		PerPro.m[12] = 0;
+		PerPro.m[13] = 0;
+		PerPro.m[14] = -1;
+		PerPro.m[15] = 0;
 		return PerPro;
 	}
 

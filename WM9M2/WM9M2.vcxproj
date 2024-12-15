@@ -128,6 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="adapter.h" />
+    <ClInclude Include="animation.h" />
     <ClInclude Include="dxCore.h" />
     <ClInclude Include="GamesEngineeringBase.h" />
     <ClInclude Include="GEMLoader.h" />
@@ -146,6 +147,7 @@
   <ItemGroup>
     <Text Include="Resources\psshader.txt" />
     <Text Include="Resources\vertex_shader.txt" />
+    <Text Include="Resources\vshader_ani.txt" />
     <Text Include="Resources\vsshader.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -49,14 +49,24 @@ public:
 		}
 	}
 
-	void updateConstantVS(std::string name, const std::string& cbName, const std::string& variableName, void* data) {
-		for (auto& cb : vsConstantBuffers) {
-			if (cb.name == cbName) {
-				cb.update(variableName, data);
-				return;
+	void updateConstantVS(std::string name, std::string constBuffferName, std::string variableName, void* data) {
+		for (int i = 0; i < vsConstantBuffers.size(); i++)
+		{
+			if (vsConstantBuffers[i].name == constBuffferName)
+			{
+				vsConstantBuffers[i].update(variableName, data);
 			}
 		}
 	}
+
+	//void updateConstantVS(std::string name, const std::string& cbName, const std::string& variableName, void* data) {
+	//	for (auto& cb : vsConstantBuffers) {
+	//		if (cb.name == cbName) {
+	//			cb.update(variableName, data);
+	//			return;
+	//		}
+	//	}
+	//}
 
 	void updateConstantPS(std::string name, const std::string& cbName, const std::string& variableName, void* data) {
 		for (auto& cb : psConstantBuffers) {
@@ -65,6 +75,37 @@ public:
 				return;
 			}
 		}
+	}
+
+	//compile vertex shader
+	void loadVS_ani(std::string& filename, DxCore& core) {
+		ID3DBlob* status;
+		ID3DBlob* shader;
+		std::string shaderHLSL = readFile(filename);
+		// compile vertex shader
+		HRESULT hr = D3DCompile(shaderHLSL.c_str(), strlen(shaderHLSL.c_str()), NULL, NULL, NULL, "VS", "vs_5_0", 0, 0, &shader, &status);
+		if (FAILED(hr)) {
+			MessageBoxA(NULL, (char*)status->GetBufferPointer(), "Vertex Shader Error", 0);
+			exit(0);
+		}
+		
+		core.device->CreateVertexShader(shader->GetBufferPointer(), shader->GetBufferSize(), NULL, &vertexShader);
+		// Link Geometry
+		D3D11_INPUT_ELEMENT_DESC layoutDesc[] = {
+			{ "POS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, 								D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, 								D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, 								D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, 								D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "BONEIDS", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, 							D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "BONEWEIGHTS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, 							D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				};
+		core.device->CreateInputLayout(layoutDesc, 6, shader->GetBufferPointer(), shader->GetBufferSize(), &layout);
+
+
+		// 使用反射系统提取常量缓冲区和纹理绑定点信息
+		ConstantBufferReflection reflection;
+		reflection.build(&core, shader, vsConstantBuffers, textureBindPointsVS, ShaderStage::VertexShader);
+		//shader->Release();
 	}
 
 	//compile vertex shader
@@ -78,7 +119,7 @@ public:
 			MessageBoxA(NULL, (char*)status->GetBufferPointer(), "Vertex Shader Error", 0);
 			exit(0);
 		}
-		
+
 		core.device->CreateVertexShader(shader->GetBufferPointer(), shader->GetBufferSize(), NULL, &vertexShader);
 		// Link Geometry
 		D3D11_INPUT_ELEMENT_DESC layoutDesc[] =
@@ -94,7 +135,7 @@ public:
 		// 使用反射系统提取常量缓冲区和纹理绑定点信息
 		ConstantBufferReflection reflection;
 		reflection.build(&core, shader, vsConstantBuffers, textureBindPointsVS, ShaderStage::VertexShader);
-		shader->Release();
+		//shader->Release();
 	}
 
 	//compile pixel shader
@@ -112,14 +153,16 @@ public:
 		core.device->CreatePixelShader(shader->GetBufferPointer(), shader->GetBufferSize(), NULL, &pixelShader);
 		ConstantBufferReflection reflection;
 		reflection.build(&core, shader, psConstantBuffers, textureBindPointsPS, ShaderStage::PixelShader);
-		shader->Release();
+		//shader->Release();
 	}
 	//Send shaders to GPU
-	void apply(DxCore& core) const {
+	void apply(DxCore& core)  {
 		core.devicecontext->IASetInputLayout(layout);
 		core.devicecontext->VSSetShader(vertexShader, NULL, 0);
 		core.devicecontext->PSSetShader(pixelShader, NULL, 0);
 		core.devicecontext->PSSetConstantBuffers(0, 1, &constantBuffer);
+
+		UpdateConstantBuffer(core);
 	}
 
 	// 释放资源
@@ -153,10 +196,16 @@ class ShaderManager {
 public:
 	std::map<std::string, Shader> shaders;
 
-	void load(std::string& name, std::string& vsFilename, std::string& psFilename, DxCore& core) {
+	void load(std::string& name, std::string& vsFilename, std::string& psFilename, DxCore& core, int model) {
 		Shader shader;
 		ID3DBlob* shaderBlob = nullptr;
-		shader.loadVS(vsFilename, core);
+		if (model == 1) {
+			shader.loadVS(vsFilename, core);
+		}
+		else {
+			shader.loadVS_ani(vsFilename, core);
+		}
+
 		shader.loadPS(psFilename, core);
 		shaders[name] = shader;
 	}
