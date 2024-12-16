@@ -86,7 +86,6 @@ private:
         newFront.y = sin(mathLib::radians(pitch));
         newFront.z = sin(mathLib::radians(yaw)) * cos(mathLib::radians(pitch));
         front = newFront.normalize();
-
         right = (front.cross(mathLib::Vec3(0.0f, 1.0f, 0.0f))).normalize();
         up = right.cross(front).normalize();
     }

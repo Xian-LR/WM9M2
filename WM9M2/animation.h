@@ -263,7 +263,6 @@ public:
 
 		mathLib::Matrix armWorld = camera.getArmTransform();
 
-		SaveMatrixToFile2(armWorld,"planeWorld");
 		instance.update("Armature|08 Fire", dt);
 
 		shader->updateConstantVS("Animated", "animatedMeshBuffer", "W", &armWorld);

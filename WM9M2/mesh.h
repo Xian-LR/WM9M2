@@ -33,7 +33,7 @@ struct ANIMATED_VERTEX
 };
 
 void SaveMatrixToFile(int i, std::string name) {
-	std::ofstream debugFile("debug_output.txt", std::ios::app); // 打开文件，追加模式
+	std::ofstream debugFile("debug_output.txt"); // 打开文件，追加模式
 	debugFile << name << "      ";
 
 	debugFile << i << " ";
@@ -44,7 +44,7 @@ void SaveMatrixToFile(int i, std::string name) {
 }
 
 void SaveMatrixToFile2(const mathLib::Matrix& matrix, std::string name) {
-	std::ofstream debugFile("debug_output2.txt", std::ios::app); // 打开文件，追加模式
+	std::ofstream debugFile("debug_output2.txt"); // 打开文件，追加模式
 	debugFile << name << std::endl;
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
