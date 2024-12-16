@@ -1,5 +1,6 @@
 ﻿#pragma once
 #define _USE_MATH_DEFINES
+#define M_PI 3.14159265358979323846
 #include <cmath>
 #include <memory.h>
 #include <ostream>
@@ -174,6 +175,10 @@ namespace mathLib {
 		return Vec3(min(v1.x, v2.x),
 			min(v1.y, v2.y),
 			min(v1.z, v2.z));
+	}
+	
+	inline float radians(float degrees) {
+		return degrees * (M_PI / 180.0f);
 	}
 
 	class Vec4 {
@@ -354,6 +359,13 @@ namespace mathLib {
 			mat.m[10] = ct;
 			return mat;
 		}
+
+		static Matrix rotationYawPitch(float yaw, float pitch) {
+			Matrix yawMatrix = rotateY(yaw);
+			Matrix pitchMatrix = rotateX(pitch);
+			return yawMatrix * pitchMatrix;
+		}
+
 
 		// 绕Z轴旋转theta角度
 		static Matrix rotateZ(float theta) {
@@ -754,6 +766,8 @@ namespace mathLib {
 		return abs(q.cross(e)) / 2;
 	}
 
+
+
 	static Barycentric calBarycentric(Vec2& a, Vec2& b, Vec2& c, Vec2& p) {
 		float A = calArea(a, b, c);
 		float alpha = calArea(a, b, p) / A;
@@ -830,6 +844,7 @@ namespace mathLib {
 		PerPro.m[15] = 0;
 		return PerPro;
 	}
+	
 
 	template<typename t>
 	t perspectiveCorrectInterpolateAttribute(t a0, t a1, t a2, float v0_w, float v1_w, float v2_w, float alpha, float beta, float gamma)

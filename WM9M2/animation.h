@@ -60,11 +60,11 @@ public:
 
 
 		mathLib::Matrix scale = mathLib::Matrix::scaling(interpolate(frames[baseFrame].scales[boneIndex], frames[nextFrameIndex].scales[boneIndex], interpolationFact));
-		SaveMatrixToFile2(scale);
+		//SaveMatrixToFile2(scale);
 		mathLib::Matrix rotation = interpolate(frames[baseFrame].rotations[boneIndex], frames[nextFrameIndex].rotations[boneIndex], interpolationFact).toMatrix();
-		SaveMatrixToFile2(rotation);
+		//SaveMatrixToFile2(rotation);
 		mathLib::Matrix translation = mathLib::Matrix::translation(interpolate(frames[baseFrame].positions[boneIndex], frames[nextFrameIndex].positions[boneIndex], interpolationFact));
-		SaveMatrixToFile2(translation);
+		//SaveMatrixToFile2(translation);
 		mathLib::Matrix local = scale * rotation * translation;
 		if (skeleton->bones[boneIndex].parentIndex > -1) {
 			mathLib::Matrix global = local * matrices[skeleton->bones[boneIndex].parentIndex];
@@ -234,25 +234,22 @@ public:
 	}
 
 	void draw(Shader* shader, DxCore& core, float dt, TextureManager& textures) {
-		float radius = 11.0f;         
+	/*	float radius = 11.0f;  */       
 		//float t = dt * 0.5f;
-		float x = radius * cos(t);
-		float z = radius * sinf(t);
+		//float x = radius * cos(t);
+		//float z = radius * sinf(t);
 		//planeWorld =  mathLib::Matrix::translation(mathLib::Vec3(x, 0.0f, z));
 
 
-		mathLib::Vec3 from = mathLib::Vec3( 10.0f, 2.0f,10.0f);
-		mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
-		mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);
-		vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 90.f, 300.f, 0.1f);
+		//mathLib::Vec3 from = mathLib::Vec3( 10.0f, 2.0f,10.0f);
+		//mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
+		//mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);
+		//vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 90.f, 300.f, 0.1f);
 
-		instance.update("Armature|08 Fire", dt);
-		//instance.update("Run", dt);
+		instance.update("Run", dt);
 		shader->updateConstantVS("Animated", "animatedMeshBuffer", "W", &planeWorld);
-		shader->updateConstantVS("Animated", "animatedMeshBuffer", "VP", &vp);
+		//shader->updateConstantVS("Animated", "animatedMeshBuffer", "VP", &vp);
 		shader->updateConstantVS("Animated", "animatedMeshBuffer", "bones", instance.matrices);
-
-		SaveMatrixToFile2(instance.matrices[1]);
 
 		shader->apply(core);
 		for (int i = 0; i < meshes.size(); i++)
@@ -262,5 +259,23 @@ public:
 		}
 	}
 
+	void drawArm(Shader* shader, DxCore& core, float dt, TextureManager& textures, Camera& camera) {
+
+		mathLib::Matrix armWorld = camera.getArmTransform();
+
+		SaveMatrixToFile2(armWorld,"planeWorld");
+		instance.update("Armature|08 Fire", dt);
+
+		shader->updateConstantVS("Animated", "animatedMeshBuffer", "W", &armWorld);
+		//hader->updateConstantVS("Animated", "animatedMeshBuffer", "VP", &vp);
+		shader->updateConstantVS("Animated", "animatedMeshBuffer", "bones", instance.matrices);
+
+		shader->apply(core);
+		for (int i = 0; i < meshes.size(); i++)
+		{
+			shader->updateTexturePS(core, "tex", textures.find(textureFilenames[i]));
+			meshes[i].draw(core);
+		}
+	}
 
 };

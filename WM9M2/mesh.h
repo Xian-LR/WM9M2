@@ -3,6 +3,7 @@
 #include "shader.h"
 #include "GEMLoader.h"
 #include "texture.h"
+#include "camera.h"
 
 struct Vertex
 {
@@ -42,9 +43,9 @@ void SaveMatrixToFile(int i, std::string name) {
 	debugFile.close();
 }
 
-void SaveMatrixToFile2(const mathLib::Matrix& matrix) {
+void SaveMatrixToFile2(const mathLib::Matrix& matrix, std::string name) {
 	std::ofstream debugFile("debug_output2.txt", std::ios::app); // 打开文件，追加模式
-	debugFile << "World Matrix:" << std::endl;
+	debugFile << name << std::endl;
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
 			debugFile << matrix.a[i][j] << " ";
@@ -222,14 +223,14 @@ public:
 	}
 
 	void draw(Shader* shader, DxCore& core, TextureManager& textures) {
-		mathLib::Vec3 from = mathLib::Vec3(150.0f, 5.0f, 250.0f);
-		mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
-		mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);
-		vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 90.f, 300.f, 0.1f);
+		//mathLib::Vec3 from = mathLib::Vec3(150.0f, 5.0f, 250.0f);
+		//mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
+		//mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);
+		//vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 90.f, 300.f, 0.1f);
 
 		
 		shader->updateConstantVS("StaticModel", "staticMeshBuffer", "W", &planeWorld);
-		shader->updateConstantVS("StaticModel", "staticMeshBuffer", "VP", &vp);
+		//shader->updateConstantVS("StaticModel", "staticMeshBuffer", "VP", &vp);
 		shader->apply(core);
 		for (int i = 0; i < meshes.size(); i++)
 		{
