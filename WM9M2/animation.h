@@ -25,18 +25,7 @@ struct AnimationFrame
 	std::vector<mathLib::Vec3> scales;
 };
 
-void SaveMatrixToFile(const mathLib::Matrix& matrix, std::string name) {
-	std::ofstream debugFile("debug_output.txt", std::ios::app); // 打开文件，追加模式
-	debugFile << name << std::endl;
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			debugFile << matrix.a[i][j] << " ";
-		}
-		debugFile << std::endl;
-	}
-	debugFile << std::endl;
-	debugFile.close();
-}
+
 
 class AnimationSequence
 {
@@ -68,9 +57,14 @@ public:
 
 	mathLib::Matrix interpolateBoneToGlobal(mathLib::Matrix* matrices, int baseFrame, float interpolationFact, Skeleton* skeleton, int boneIndex) {
 		int nextFrameIndex = nextFrame(baseFrame);
+
+
 		mathLib::Matrix scale = mathLib::Matrix::scaling(interpolate(frames[baseFrame].scales[boneIndex], frames[nextFrameIndex].scales[boneIndex], interpolationFact));
+		SaveMatrixToFile2(scale);
 		mathLib::Matrix rotation = interpolate(frames[baseFrame].rotations[boneIndex], frames[nextFrameIndex].rotations[boneIndex], interpolationFact).toMatrix();
+		SaveMatrixToFile2(rotation);
 		mathLib::Matrix translation = mathLib::Matrix::translation(interpolate(frames[baseFrame].positions[boneIndex], frames[nextFrameIndex].positions[boneIndex], interpolationFact));
+		SaveMatrixToFile2(translation);
 		mathLib::Matrix local = scale * rotation * translation;
 		if (skeleton->bones[boneIndex].parentIndex > -1) {
 			mathLib::Matrix global = local * matrices[skeleton->bones[boneIndex].parentIndex];
@@ -86,17 +80,27 @@ class Animation
 public:
 	std::map<std::string, AnimationSequence> animations;
 	Skeleton skeleton;
+	int bonesize = skeleton.bones.size();
+
+	int boneSize() {
+		int boneSize = skeleton.bones.size();
+		return boneSize;
+	}
+
+	//SaveMatrixToFile(bonesize, "bonesizeup");
+
 	void calcFrame(std::string name, float t, int& frame, float& interpolationFact) {
 		animations[name].calcFrame(t, frame, interpolationFact);
 	}
 
 	mathLib::Matrix interpolateBoneToGlobal(std::string name, mathLib::Matrix* matrices, int baseFrame, float 						interpolationFact, int boneIndex) {
+
 		return animations[name].interpolateBoneToGlobal(matrices, baseFrame, interpolationFact, &skeleton, boneIndex);
 	}
 
 	void calcFinalTransforms(mathLib::Matrix* matrices)
 	{
-		for (int i = 0; i < 44; i++)
+		for (int i = 0; i < skeleton.bones.size(); i++)
 		{
 			matrices[i] = skeleton.bones[i].offset * matrices[i] * skeleton.globalInverse;
 		}
@@ -135,10 +139,15 @@ public:
 		int frame = 0;
 		float interpolationFact = 0;
 		animation->calcFrame(name, t, frame, interpolationFact);
-		for (int i = 0; i < 44; i++)
+
+
+		for (int i = 0; i < animation->boneSize(); i++)
 		{
+			
 			matrices[i] = animation->interpolateBoneToGlobal(name, matrices, frame, interpolationFact, i);
+			
 		}
+	
 		animation->calcFinalTransforms(matrices);
 
 	}
@@ -209,21 +218,42 @@ public:
 				}
 				aseq.frames.push_back(frame);
 			}
+
 			animation.animations.insert({ name, aseq });
 		}
 		instance.animation = &animation;
+
+	}
+
+	void translate(mathLib::Vec3 v) {
+		planeWorld = planeWorld * mathLib::Matrix::translation(v);
+	}
+
+	void scale(mathLib::Vec3 v) {
+		planeWorld = planeWorld * mathLib::Matrix::scaling(v);
 	}
 
 	void draw(Shader* shader, DxCore& core, float dt, TextureManager& textures) {
-		mathLib::Vec3 from = mathLib::Vec3(11 * cos(t), 5, 11 * sinf(t));
-		mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
-		mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);	
+		float radius = 11.0f;         
+		//float t = dt * 0.5f;
+		float x = radius * cos(t);
+		float z = radius * sinf(t);
+		//planeWorld =  mathLib::Matrix::translation(mathLib::Vec3(x, 0.0f, z));
 
-		vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 90.f, 100.f, 0.1f);
-		instance.update("Run", dt);
+
+		mathLib::Vec3 from = mathLib::Vec3( 10.0f, 2.0f,10.0f);
+		mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
+		mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);
+		vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 90.f, 300.f, 0.1f);
+
+		instance.update("Armature|08 Fire", dt);
+		//instance.update("Run", dt);
 		shader->updateConstantVS("Animated", "animatedMeshBuffer", "W", &planeWorld);
 		shader->updateConstantVS("Animated", "animatedMeshBuffer", "VP", &vp);
 		shader->updateConstantVS("Animated", "animatedMeshBuffer", "bones", instance.matrices);
+
+		SaveMatrixToFile2(instance.matrices[1]);
+
 		shader->apply(core);
 		for (int i = 0; i < meshes.size(); i++)
 		{

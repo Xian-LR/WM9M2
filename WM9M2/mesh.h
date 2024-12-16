@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <d3d11.h>
 #include "shader.h"
 #include "GEMLoader.h"
@@ -30,6 +30,30 @@ struct ANIMATED_VERTEX
 	unsigned int bonesIDs[4];
 	float boneWeights[4];
 };
+
+void SaveMatrixToFile(int i, std::string name) {
+	std::ofstream debugFile("debug_output.txt", std::ios::app); // 打开文件，追加模式
+	debugFile << name << "      ";
+
+	debugFile << i << " ";
+
+
+	debugFile << std::endl;
+	debugFile.close();
+}
+
+void SaveMatrixToFile2(const mathLib::Matrix& matrix) {
+	std::ofstream debugFile("debug_output2.txt", std::ios::app); // 打开文件，追加模式
+	debugFile << "World Matrix:" << std::endl;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			debugFile << matrix.a[i][j] << " ";
+		}
+		debugFile << std::endl;
+	}
+	debugFile << std::endl;
+	debugFile.close();
+}
 
 class Triangle {
 	Vertex vertices[3];
@@ -164,10 +188,13 @@ class LoadMesh {
 public:
 	std::vector<Mesh> meshes;
 	mathLib::Matrix planeWorld;
+
 	mathLib::Matrix vp;
 	float t = 0.0f;
+	std::vector<std::string> textureFilenames;
 
-	void Init(DxCore& core, std::string filename) {
+
+	void Init(DxCore& core, std::string filename, TextureManager& textures) {
 		GEMLoader::GEMModelLoader loader;
 		std::vector<GEMLoader::GEMMesh> gemmeshes;
 		loader.load(filename, gemmeshes);
@@ -180,22 +207,36 @@ public:
 				vertices.push_back(v);
 			}
 			mesh.Init(vertices, gemmeshes[i].indices, core);
+			textureFilenames.push_back(gemmeshes[i].material.find("diffuse").getValue());
+			textures.loadTexture(gemmeshes[i].material.find("diffuse").getValue(), &core);
 			meshes.push_back(mesh);
 		}
 	}
 
-	void draw(Shader* shader, DxCore& core) {
-		mathLib::Vec3 from = mathLib::Vec3(11 * cos(t), 10, 20 * sin(t));
+	void translate(mathLib::Vec3 v) {
+		planeWorld = planeWorld * mathLib::Matrix::translation(v);
+	}
+
+	void scale(mathLib::Vec3 v) {
+		planeWorld = planeWorld * mathLib::Matrix::scaling(v);
+	}
+
+	void draw(Shader* shader, DxCore& core, TextureManager& textures) {
+		mathLib::Vec3 from = mathLib::Vec3(150.0f, 5.0f, 250.0f);
 		mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
-		mathLib::Vec3 up = mathLib::Vec3(0.0f, 2.0f, 0.0f);
-		vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 20.f, 200.f, 0.1f);
+		mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);
+		vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 90.f, 300.f, 0.1f);
+
+		
 		shader->updateConstantVS("StaticModel", "staticMeshBuffer", "W", &planeWorld);
 		shader->updateConstantVS("StaticModel", "staticMeshBuffer", "VP", &vp);
-
+		shader->apply(core);
 		for (int i = 0; i < meshes.size(); i++)
 		{
+			shader->updateTexturePS(core, "tex", textures.find(textureFilenames[i]));
 			meshes[i].draw(core);
 		}
+		
 
 	}
 };
