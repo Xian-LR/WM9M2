@@ -62,11 +62,26 @@ public:
 
 	}
 
-	void load(std::string filename, DxCore* dxcore) {
+	void load(std::string filename, DxCore* dxcore, bool isNormalMap = false) {
+		std::cout << "Attempting to load texture: " << filename << std::endl;
+
 		int width = 0;
 		int height = 0;
 		int channels = 0;
 		unsigned char* texels = stbi_load(filename.c_str(), &width, &height, &channels, 0);
+
+		if (texels == nullptr) {
+			std::cout << "Failed to load texture file: " << filename << std::endl;
+			srv = nullptr;
+			return;
+		}
+
+		std::cout << "Successfully loaded: " << filename
+			<< " (" << width << "x" << height << ", " << channels << " channels)" << std::endl;
+
+		// Choose appropriate format
+		DXGI_FORMAT format = isNormalMap ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
 		if (channels == 3) {
 			channels = 4;
 			unsigned char* texelsWithAlpha = new unsigned char[width * height * channels];
@@ -76,19 +91,22 @@ public:
 				texelsWithAlpha[(i * 4) + 2] = texels[(i * 3) + 2];
 				texelsWithAlpha[(i * 4) + 3] = 255;
 			}
-			// Initialize texture using width, height, channels, and texelsWithAlpha
-			init(dxcore, width, height, channels, texelsWithAlpha, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+			init(dxcore, width, height, channels, texelsWithAlpha, format);
 			delete[] texelsWithAlpha;
 		}
 		else {
-			init(dxcore, width, height, channels, texels, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
-			// Initialize texture using width, height, channels, and texels
+			init(dxcore, width, height, channels, texels, format);
 		}
+
 		sampler.init(*dxcore);
 		sampler.bind(*dxcore);
 		stbi_image_free(texels);
+
 		if (srv == nullptr) {
-			std::cerr << "Error: SRV not created." << std::endl;
+			std::cerr << "Error: SRV not created for " << filename << std::endl;
+		}
+		else {
+			std::cout << "Successfully created SRV for " << filename << std::endl;
 		}
 	}
 	void free() {
@@ -99,33 +117,111 @@ public:
 
 };
 
+// TextureManager with normal map support
+
 class TextureManager {
 public:
 	std::map<std::string, Texture*> textures;
+	ID3D11ShaderResourceView* defaultNormalSRV; // Default normal map
+
+	void init(DxCore* core) {
+		// Create default normal map (upward normal: RGB(128,128,255) = normal(0,0,1))
+		createDefaultNormalMap(core);
+	}
+
+	void createDefaultNormalMap(DxCore* core) {
+		// Create 1x1 default normal map
+		unsigned char defaultNormalData[4] = { 128,128, 255, 255 }; // Default upward normal
+
+		D3D11_TEXTURE2D_DESC desc = {};
+		desc.Width = 1;
+		desc.Height = 1;
+		desc.MipLevels = 1;
+		desc.ArraySize = 1;
+		desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		desc.SampleDesc.Count = 1;
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		D3D11_SUBRESOURCE_DATA initData = {};
+		initData.pSysMem = defaultNormalData;
+		initData.SysMemPitch = 4; // 4 bytes per pixel
+
+		ID3D11Texture2D* defaultNormalTexture = nullptr;
+		core->device->CreateTexture2D(&desc, &initData, &defaultNormalTexture);
+		core->device->CreateShaderResourceView(defaultNormalTexture, nullptr, &defaultNormalSRV);
+
+		defaultNormalTexture->Release();
+	}
 
 	void loadTexture(const std::string& filename, DxCore* core) {
 		if (textures.find(filename) == textures.end()) {
 			Texture* texture = new Texture();
 			texture->load(filename, core);
-
-
 			textures.insert({ filename, texture });
-		
 		}
-		return ;
 	}
 
-	ID3D11ShaderResourceView* find(std::string name)
-	{
-		return textures[name]->srv;
+
+
+	// Load normal texture based on base texture name
+	void loadNormalTexture(const std::string& baseTextureName, DxCore* core) {
+		// Construct normal map filename from base texture name
+		std::string normalFileName;
+		size_t lastDot = baseTextureName.find_last_of('.');
+		if (lastDot != std::string::npos) {
+			normalFileName = baseTextureName.substr(0, lastDot) + "_Normal" + baseTextureName.substr(lastDot);
+		}
+		else {
+			normalFileName = baseTextureName + "_Normal";
+		}
+
+		if (textures.find(normalFileName) == textures.end()) {
+			Texture* texture = new Texture();
+			texture->load(normalFileName, core, true);  // Load actual normal map file
+
+			if (texture->srv != nullptr) {
+				textures.insert({ normalFileName, texture });
+			}
+			else {
+				delete texture;
+			}
+		}
 	}
 
-	~TextureManager()
-	{
-		for (auto it = textures.cbegin(); it != textures.cend(); )
-		{
+	ID3D11ShaderResourceView* find(std::string name) {
+		auto it = textures.find(name);
+		if (it != textures.end()) {
+			return it->second->srv;
+		}
+		return nullptr;
+	}
+
+	// Find normal map, return default if not found
+	ID3D11ShaderResourceView* findNormalMap(std::string baseName) {
+		// Construct actual normal map filename
+		std::string normalFileName;
+		size_t lastDot = baseName.find_last_of('.');
+		if (lastDot != std::string::npos) {
+			normalFileName = baseName.substr(0, lastDot) + "_Normal" + baseName.substr(lastDot);
+		}
+		else {
+			normalFileName = baseName + "_Normal";
+		}
+
+		auto it = textures.find(normalFileName);
+		if (it != textures.end()) {
+			return it->second->srv;
+		}
+		return defaultNormalSRV;
+	}
+
+	~TextureManager() {
+		for (auto it = textures.cbegin(); it != textures.cend(); ) {
 			it->second->free();
+			delete it->second;
 			textures.erase(it++);
 		}
+		if (defaultNormalSRV) defaultNormalSRV->Release();
 	}
 };

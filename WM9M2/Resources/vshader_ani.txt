@@ -5,40 +5,40 @@ cbuffer animatedMeshBuffer
 	float4x4 bones[256];
 };
 
-struct VS_INPUT
-{
-	float4 Pos : POS;
-	float3 Normal : NORMAL;
-	float3 Tangent : TANGENT;
-	float2 TexCoords : TEXCOORD;
-	uint4 BoneIDs : BONEIDS;
-	float4 BoneWeights : BONEWEIGHTS;
+struct VS_INPUT {
+	float4 Pos        : POS;
+	float3 Normal     : NORMAL;
+	float3 Tangent    : TANGENT;
+	float2 TexCoords  : TEXCOORD;
+	uint4  BoneIDs    : BONEIDS;
+	float4 BoneWeights: BONEWEIGHTS;
 };
 
-struct PS_INPUT
-{
-	float4 Pos : SV_POSITION;
-	float3 Normal : NORMAL;
-	float3 Tangent : TANGENT;
-	float2 TexCoords : TEXCOORD;
+struct PS_INPUT {
+	float4 Pos        : SV_POSITION;
+	float3 Normal     : NORMAL;
+	float3 Tangent    : TANGENT;
+	float2 TexCoords  : TEXCOORD0;
 };
 
 PS_INPUT VS(VS_INPUT input)
 {
-	PS_INPUT output;
-	float4x4 transform = bones[input.BoneIDs[0]] * input.BoneWeights[0];
-	transform += bones[input.BoneIDs[1]] * input.BoneWeights[1];
-	transform += bones[input.BoneIDs[2]] * input.BoneWeights[2];
-	transform += bones[input.BoneIDs[3]] * input.BoneWeights[3];
-	output.Pos = mul(input.Pos, transform);
-	output.Pos = mul(output.Pos, W);
-	output.Pos = mul(output.Pos, VP);
-	output.Normal = mul(input.Normal, (float3x3)transform);
-	output.Normal = mul(output.Normal, (float3x3)W);
-	output.Normal = normalize(output.Normal);
-	output.Tangent = mul(input.Tangent, (float3x3)transform);
-	output.Tangent = mul(output.Tangent, (float3x3)W);
-	output.Tangent = normalize(output.Tangent);
-	output.TexCoords = input.TexCoords;
-	return output;
+	PS_INPUT o;
+
+	// ÏßÐÔÃÉÆ¤£¨4 ¹Ç÷À£©
+	float4x4 T =
+		  bones[input.BoneIDs.x] * input.BoneWeights.x
+		+ bones[input.BoneIDs.y] * input.BoneWeights.y
+		+ bones[input.BoneIDs.z] * input.BoneWeights.z
+		+ bones[input.BoneIDs.w] * input.BoneWeights.w;
+
+	float4 wpos = mul(mul(input.Pos, T), W);
+	o.Pos       = mul(wpos, VP);
+
+	float3x3 TW = (float3x3)mul(T, W);
+	o.Normal    = normalize(mul(input.Normal,  TW));
+	o.Tangent   = normalize(mul(input.Tangent, TW));
+
+	o.TexCoords = input.TexCoords;
+	return o;
 }

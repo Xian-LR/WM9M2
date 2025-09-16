@@ -130,12 +130,14 @@
     <ClInclude Include="adapter.h" />
     <ClInclude Include="animation.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="DeferredRenderer.h" />
     <ClInclude Include="dxCore.h" />
     <ClInclude Include="GamesEngineeringBase.h" />
     <ClInclude Include="GEMLoader.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="mathLib.h" />
     <ClInclude Include="mesh.h" />
+    <ClInclude Include="player.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="ShaderReflection.h" />
     <ClInclude Include="stb_image.h" />
@@ -144,10 +146,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="adapter.cpp" />
+    <ClCompile Include="collision.h" />
     <ClCompile Include="game.cpp" />
+    <ClCompile Include="mathLib.cpp" />
     <ClCompile Include="window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Resources\copy_shader.txt" />
+    <Text Include="Resources\gbuffer_animated.txt" />
+    <Text Include="Resources\gbuffer_static.txt" />
+    <Text Include="Resources\lighting.txt" />
     <Text Include="Resources\psshader.txt" />
     <Text Include="Resources\vertex_shader.txt" />
     <Text Include="Resources\vshader_ani.txt" />

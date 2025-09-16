@@ -2,6 +2,7 @@
 #include "mesh.h"
 #include <iostream>
 #include <fstream>
+#include <cfloat>
 
 struct Bone
 {
@@ -16,8 +17,6 @@ struct Skeleton
 	mathLib::Matrix globalInverse;
 };
 
-
-
 struct AnimationFrame
 {
 	std::vector<mathLib::Vec3> positions;
@@ -25,19 +24,20 @@ struct AnimationFrame
 	std::vector<mathLib::Vec3> scales;
 };
 
-
-
 class AnimationSequence
 {
 public:
 	std::vector<AnimationFrame> frames;
 	float ticksPerSecond;
+
 	mathLib::Vec3 interpolate(mathLib::Vec3 p1, mathLib::Vec3 p2, float t) {
 		return ((p1 * (1.0f - t)) + (p2 * t));
 	}
+
 	mathLib::Quaternion interpolate(mathLib::Quaternion q1, mathLib::Quaternion q2, float t) {
 		return mathLib::Quaternion::slerp(q1, q2, t);
 	}
+
 	float duration() {
 		return ((float)frames.size() / ticksPerSecond);
 	}
@@ -58,20 +58,16 @@ public:
 	mathLib::Matrix interpolateBoneToGlobal(mathLib::Matrix* matrices, int baseFrame, float interpolationFact, Skeleton* skeleton, int boneIndex) {
 		int nextFrameIndex = nextFrame(baseFrame);
 
-
 		mathLib::Matrix scale = mathLib::Matrix::scaling(interpolate(frames[baseFrame].scales[boneIndex], frames[nextFrameIndex].scales[boneIndex], interpolationFact));
-		//SaveMatrixToFile2(scale);
 		mathLib::Matrix rotation = interpolate(frames[baseFrame].rotations[boneIndex], frames[nextFrameIndex].rotations[boneIndex], interpolationFact).toMatrix();
-		//SaveMatrixToFile2(rotation);
 		mathLib::Matrix translation = mathLib::Matrix::translation(interpolate(frames[baseFrame].positions[boneIndex], frames[nextFrameIndex].positions[boneIndex], interpolationFact));
-		//SaveMatrixToFile2(translation);
 		mathLib::Matrix local = scale * rotation * translation;
+
 		if (skeleton->bones[boneIndex].parentIndex > -1) {
 			mathLib::Matrix global = local * matrices[skeleton->bones[boneIndex].parentIndex];
 			return global;
 		}
 		return local;
-
 	}
 };
 
@@ -80,21 +76,16 @@ class Animation
 public:
 	std::map<std::string, AnimationSequence> animations;
 	Skeleton skeleton;
-	int bonesize = skeleton.bones.size();
 
 	int boneSize() {
-		int boneSize = skeleton.bones.size();
-		return boneSize;
+		return skeleton.bones.size();
 	}
-
-	//SaveMatrixToFile(bonesize, "bonesizeup");
 
 	void calcFrame(std::string name, float t, int& frame, float& interpolationFact) {
 		animations[name].calcFrame(t, frame, interpolationFact);
 	}
 
-	mathLib::Matrix interpolateBoneToGlobal(std::string name, mathLib::Matrix* matrices, int baseFrame, float 						interpolationFact, int boneIndex) {
-
+	mathLib::Matrix interpolateBoneToGlobal(std::string name, mathLib::Matrix* matrices, int baseFrame, float interpolationFact, int boneIndex) {
 		return animations[name].interpolateBoneToGlobal(matrices, baseFrame, interpolationFact, &skeleton, boneIndex);
 	}
 
@@ -119,6 +110,7 @@ public:
 	{
 		t = 0;
 	}
+
 	bool animationFinished()
 	{
 		if (t > animation->animations[currentAnimation].duration())
@@ -133,60 +125,104 @@ public:
 			t += dt;
 		}
 		else {
-			currentAnimation = name;  t = 0;
+			currentAnimation = name;
+			t = 0;
 		}
-		if (animationFinished() == true) { resetAnimationTime(); }
+		if (animationFinished() == true) {
+			resetAnimationTime();
+		}
+
 		int frame = 0;
 		float interpolationFact = 0;
 		animation->calcFrame(name, t, frame, interpolationFact);
 
-
 		for (int i = 0; i < animation->boneSize(); i++)
 		{
-			
 			matrices[i] = animation->interpolateBoneToGlobal(name, matrices, frame, interpolationFact, i);
-			
 		}
-	
+
 		animation->calcFinalTransforms(matrices);
-
 	}
-
 };
 
 class LoadAnimation {
 public:
 	std::vector<Mesh> meshes;
+	std::vector<mathLib::Vec3> meshCenters;  // Store the center of each mesh for offset correction
 	Animation animation;
 	mathLib::Matrix planeWorld;
-
 	mathLib::Matrix vp;
 	float t = 0.0f;
+	float armScale = 1.0f;
 	AnimationInstance instance;
 	std::vector<std::string> textureFilenames;
 
 	void Init(DxCore& core, std::string filename, TextureManager& textures) {
+		planeWorld.identity();
+
 		GEMLoader::GEMModelLoader loader;
 		std::vector<GEMLoader::GEMMesh> gemmeshes;
 		GEMLoader::GEMAnimation gemanimation;
 		loader.load(filename, gemmeshes, gemanimation);
+
+		// Calculate the overall bounding box to find the model center
+		mathLib::Vec3 overallMin(FLT_MAX, FLT_MAX, FLT_MAX);
+		mathLib::Vec3 overallMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
 		for (int i = 0; i < gemmeshes.size(); i++) {
 			Mesh mesh;
 			std::vector<ANIMATED_VERTEX> vertices;
+
+			// Calculate per-mesh bounds
+			mathLib::Vec3 meshMin(FLT_MAX, FLT_MAX, FLT_MAX);
+			mathLib::Vec3 meshMax(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
 			for (int j = 0; j < gemmeshes[i].verticesAnimated.size(); j++) {
 				ANIMATED_VERTEX v;
 				memcpy(&v, &gemmeshes[i].verticesAnimated[j], sizeof(ANIMATED_VERTEX));
+
+				// Track bounds
+				meshMin.x = min(meshMin.x, v.pos.x);
+				meshMin.y = min(meshMin.y, v.pos.y);
+				meshMin.z = min(meshMin.z, v.pos.z);
+				meshMax.x = max(meshMax.x, v.pos.x);
+				meshMax.y = max(meshMax.y, v.pos.y);
+				meshMax.z = max(meshMax.z, v.pos.z);
+
+				overallMin.x = min(overallMin.x, v.pos.x);
+				overallMin.y = min(overallMin.y, v.pos.y);
+				overallMin.z = min(overallMin.z, v.pos.z);
+				overallMax.x = max(overallMax.x, v.pos.x);
+				overallMax.y = max(overallMax.y, v.pos.y);
+				overallMax.z = max(overallMax.z, v.pos.z);
+
 				vertices.push_back(v);
 			}
+
+			// Store mesh center for this mesh
+			mathLib::Vec3 meshCenter = (meshMin + meshMax) * 0.5f;
+			meshCenters.push_back(meshCenter);
+
 			textureFilenames.push_back(gemmeshes[i].material.find("diffuse").getValue());
 			textures.loadTexture(gemmeshes[i].material.find("diffuse").getValue(), &core);
-
-			// Load texture with filename: gemmeshes[i].material.find("diffuse").getValue()
 
 			mesh.Init(vertices, gemmeshes[i].indices, core);
 			meshes.push_back(mesh);
 		}
 
+		// Calculate overall model center
+		mathLib::Vec3 modelCenter = (overallMin + overallMax) * 0.5f;
+
+		// Print diagnostic information
+		std::cout << "Uzi Model Analysis:" << std::endl;
+		std::cout << "Overall bounds: (" << overallMin.x << ", " << overallMin.y << ", " << overallMin.z
+			<< ") to (" << overallMax.x << ", " << overallMax.y << ", " << overallMax.z << ")" << std::endl;
+		std::cout << "Model center: (" << modelCenter.x << ", " << modelCenter.y << ", " << modelCenter.z << ")" << std::endl;
+		for (int i = 0; i < meshCenters.size(); i++) {
+			std::cout << "Mesh " << i << " center: (" << meshCenters[i].x << ", " << meshCenters[i].y << ", " << meshCenters[i].z << ")" << std::endl;
+		}
+
+		// Load skeleton
 		for (int i = 0; i < gemanimation.bones.size(); i++)
 		{
 			Bone bone;
@@ -196,6 +232,7 @@ public:
 			animation.skeleton.bones.push_back(bone);
 		}
 
+		// Load animations
 		for (int i = 0; i < gemanimation.animations.size(); i++)
 		{
 			std::string name = gemanimation.animations[i].name;
@@ -218,11 +255,9 @@ public:
 				}
 				aseq.frames.push_back(frame);
 			}
-
 			animation.animations.insert({ name, aseq });
 		}
 		instance.animation = &animation;
-
 	}
 
 	void translate(mathLib::Vec3 v) {
@@ -231,47 +266,19 @@ public:
 
 	void scale(mathLib::Vec3 v) {
 		planeWorld = planeWorld * mathLib::Matrix::scaling(v);
+		armScale = v.x;  // Assuming uniform scaling
 	}
 
-	void draw(Shader* shader, DxCore& core, float dt, TextureManager& textures) {
-	/*	float radius = 11.0f;  */       
-		//float t = dt * 0.5f;
-		//float x = radius * cos(t);
-		//float z = radius * sinf(t);
-		//planeWorld =  mathLib::Matrix::translation(mathLib::Vec3(x, 0.0f, z));
-
-
-		//mathLib::Vec3 from = mathLib::Vec3( 10.0f, 2.0f,10.0f);
-		//mathLib::Vec3 to = mathLib::Vec3(0.0f, 0.0f, 0.0f);
-		//mathLib::Vec3 up = mathLib::Vec3(0.0f, 1.0f, 0.0f);
-		//vp = mathLib::lookAt(from, to, up) * mathLib::PerPro(1.f, 1.f, 90.f, 300.f, 0.1f);
-
+	// Draw for regular animated models (like TRex)
+	void draw(Shader* shader, DxCore& core, float dt, TextureManager& textures, const mathLib::Matrix& VP) {
 		instance.update("Run", dt);
+
 		shader->updateConstantVS("Animated", "animatedMeshBuffer", "W", &planeWorld);
-		//shader->updateConstantVS("Animated", "animatedMeshBuffer", "VP", &vp);
+		shader->updateConstantVS("Animated", "animatedMeshBuffer", "VP", &VP);
 		shader->updateConstantVS("Animated", "animatedMeshBuffer", "bones", instance.matrices);
-
 		shader->apply(core);
-		for (int i = 0; i < meshes.size(); i++)
-		{
-			shader->updateTexturePS(core, "tex", textures.find(textureFilenames[i]));
-			meshes[i].draw(core);
-		}
-	}
 
-	void drawArm(Shader* shader, DxCore& core, float dt, TextureManager& textures, Camera& camera) {
-
-		mathLib::Matrix armWorld = camera.getArmTransform();
-
-		instance.update("Armature|08 Fire", dt);
-
-		shader->updateConstantVS("Animated", "animatedMeshBuffer", "W", &armWorld);
-		//hader->updateConstantVS("Animated", "animatedMeshBuffer", "VP", &vp);
-		shader->updateConstantVS("Animated", "animatedMeshBuffer", "bones", instance.matrices);
-
-		shader->apply(core);
-		for (int i = 0; i < meshes.size(); i++)
-		{
+		for (int i = 0; i < meshes.size(); ++i) {
 			shader->updateTexturePS(core, "tex", textures.find(textureFilenames[i]));
 			meshes[i].draw(core);
 		}

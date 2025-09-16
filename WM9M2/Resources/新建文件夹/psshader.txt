@@ -1,0 +1,27 @@
+﻿Texture2D    tex            : register(t0);
+SamplerState samplerLinear  : register(s0);
+
+
+cbuffer AlphaCutCB
+{
+	float alphaCutoff;
+	float3 _padAlphaCutCB;
+};
+
+struct PS_INPUT {
+	float4 Pos        : SV_POSITION;
+	float3 Normal     : NORMAL;    
+	float3 Tangent    : TANGENT;   
+	float2 TexCoords  : TEXCOORD0;
+};
+
+float4 PS(PS_INPUT input) : SV_Target0
+{
+	float4 albedo = tex.Sample(samplerLinear, input.TexCoords);
+
+
+	if (albedo.a < alphaCutoff) discard;
+
+
+	return float4(albedo.rgb, albedo.a);
+}

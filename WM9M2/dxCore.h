@@ -8,7 +8,6 @@ public:
 	ID3D11DeviceContext* devicecontext;
 	IDXGISwapChain* swapchain;
 	// views and buffers
-	// views 提供灵活的资源访问方式
 	ID3D11RenderTargetView* backbufferRenderTargetView;
 	ID3D11Texture2D* backbuffer;
 	ID3D11DepthStencilView* depthStencilView;
@@ -41,7 +40,6 @@ public:
 		fl = D3D_FEATURE_LEVEL_11_0;
 
 		//Create the Device, Swapchain and DeviceContext
-		//Device 创建资源，Device Context 使用这些资源执行绘制命令
 		Adapter a;
 		a.findAdapter();
 		D3D11CreateDeviceAndSwapChain(a.adapter,

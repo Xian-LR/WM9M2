@@ -60,12 +60,15 @@ public:
 		dirty = 1;
 		shaderStage = _shaderStage;
 	}
-	void update(std::string name, void* data)
+	void update(std::string name, const void* data)
 	{
 		ConstantBufferVariable cbVariable = constantBufferData[name];
 		memcpy(&buffer[cbVariable.offset], data, cbVariable.size);
 		dirty = 1;
 	}
+
+
+
 	void upload(DxCore* core)
 	{
 		if (dirty == 1)

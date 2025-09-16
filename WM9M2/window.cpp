@@ -3,7 +3,6 @@
 Window* window;
 
 //processes messages sent to a window
-//用于处理各种事件，如鼠标点击、键盘输入等
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	switch (msg)
 	{
@@ -78,8 +77,8 @@ void Window::Init(std::string window_name, int window_width, int window_height, 
 	height = window_height;
 	style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
 	hwnd = CreateWindowEx(WS_EX_APPWINDOW, wname.c_str(), wname.c_str(), style, window_x, window_y, width, height, NULL, NULL, hInstance, this);
-	memset(keys, 0, 256 * sizeof(char));//用于将一块内存的内容设置为指定的值
-	window = this;//全局访问当前窗口的实例
+	memset(keys, 0, 256 * sizeof(char));
+	window = this;
 }
 
 void Window::updateMouse(int x, int y)
@@ -91,7 +90,7 @@ void Window::updateMouse(int x, int y)
 void Window::processMessages() {
 	MSG msg;
 	ZeroMemory(&msg, sizeof(MSG));
-	//消息循环
+
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);

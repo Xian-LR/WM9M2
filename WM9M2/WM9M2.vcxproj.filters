@@ -57,6 +57,12 @@
     <ClInclude Include="camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="player.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DeferredRenderer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="adapter.cpp">
@@ -68,18 +74,36 @@
     <ClCompile Include="window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="collision.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mathLib.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Resources\vertex_shader.txt">
+    <Text Include="Resources\copy_shader.txt">
       <Filter>Resource Files</Filter>
     </Text>
-    <Text Include="Resources\vsshader.txt">
+    <Text Include="Resources\gbuffer_animated.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="Resources\gbuffer_static.txt">
       <Filter>Resource Files</Filter>
     </Text>
     <Text Include="Resources\psshader.txt">
       <Filter>Resource Files</Filter>
     </Text>
+    <Text Include="Resources\vertex_shader.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
     <Text Include="Resources\vshader_ani.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="Resources\vsshader.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="Resources\lighting.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>

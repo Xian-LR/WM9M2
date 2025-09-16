@@ -1,4 +1,4 @@
-/*
+﻿/*
 MIT License
 
 Copyright (c) 2024 MSc Games Engineering Team

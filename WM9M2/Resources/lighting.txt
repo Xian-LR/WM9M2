@@ -1,0 +1,82 @@
+// lighting.txt - Deferred rendering lighting shader
+
+// Light and camera parameters
+cbuffer LightingBuffer : register(b0)
+{
+    float3 lightPos;
+    float lightRange;
+    float3 lightColor;
+    float lightIntensity;
+    float3 cameraPos;
+    float padding;
+};
+
+// G-Buffer textures
+Texture2D colorTexture : register(t0);
+Texture2D normalTexture : register(t1);
+SamplerState textureSampler : register(s0);
+
+struct VS_INPUT
+{
+    float3 position : POSITION;
+    float2 texCoord : TEXCOORD;
+};
+
+struct PS_INPUT
+{
+    float4 position : SV_POSITION;
+    float2 texCoord : TEXCOORD;
+};
+
+// Fullscreen quad vertex shader
+PS_INPUT VS(VS_INPUT input)
+{
+    PS_INPUT output;
+    output.position = float4(input.position, 1.0);
+    output.texCoord = input.texCoord;
+    return output;
+}
+
+// Deferred lighting pixel shader
+float4 PS(PS_INPUT input) : SV_Target
+{
+    // Sample G-Buffer data
+    float4 colorData = colorTexture.Sample(textureSampler, input.texCoord);
+    float4 normalData = normalTexture.Sample(textureSampler, input.texCoord);
+    
+    if (normalData.a < 0.5) 
+    {
+        return colorData;
+    }
+    
+    // Decode geometry data
+    float3 diffuseColor = colorData.rgb;
+    float3 worldNormal = normalize(normalData.rgb * 2.0 - 1.0);
+    
+    // Reconstruct world position
+    float2 screenPos = input.texCoord * 2.0 - 1.0;
+    float3 worldPos = float3(screenPos.x * 100.0, 0.0, screenPos.y * 100.0);
+    
+    // Light direction and attenuation
+    float3 lightDir = normalize(lightPos - worldPos);
+    float distance = length(lightPos - worldPos);
+    float attenuation = saturate(1.0 - distance / lightRange);
+    attenuation = attenuation * attenuation;
+    
+    // Lighting components
+    float3 ambient = 0.3 * diffuseColor;
+    
+    float NdotL = max(dot(worldNormal, lightDir), 0.0);
+    float3 diffuse = diffuseColor * NdotL;
+    
+    float3 viewDir = normalize(cameraPos - worldPos);
+    float3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(worldNormal, halfwayDir), 0.0), 32.0);
+    float3 specular = float3(0.1, 0.1, 0.1) * spec;
+    
+    // Final color calculation
+    float3 finalColor = ambient + (diffuse + specular) * lightColor * lightIntensity * attenuation;
+    finalColor = saturate(finalColor);
+    
+    return float4(finalColor, 1.0);
+}

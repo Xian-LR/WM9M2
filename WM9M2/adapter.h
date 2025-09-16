@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <D3D11.h>
 #include <vector>
 #include <dxgi1_6.h>

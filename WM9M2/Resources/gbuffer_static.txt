@@ -1,0 +1,99 @@
+// gbuffer_static.txt - Normal mapping support version
+
+// Transform matrices
+cbuffer staticMeshBuffer
+{
+    float4x4 W;
+    float4x4 VP;
+};
+
+// Alpha testing
+cbuffer AlphaCutCB
+{
+    float alphaCutoff;
+    float3 _padAlphaCutCB;
+};
+
+struct VS_INPUT {
+    float4 Pos      : POS;
+    float3 Normal   : NORMAL;
+    float3 Tangent  : TANGENT;
+    float2 TexCoords: TEXCOORD;
+};
+
+struct PS_INPUT {
+    float4 Pos       : SV_POSITION;
+    float3 WorldPos  : WORLDPOS;
+    float3 Normal    : NORMAL;
+    float3 Tangent   : TANGENT;
+    float3 Binormal  : BINORMAL;
+    float2 TexCoords : TEXCOORD0;
+};
+
+struct PS_OUTPUT
+{
+    float4 color : SV_Target0;
+    float4 normal : SV_Target1;
+};
+
+// Texture inputs
+Texture2D diffuseTexture : register(t0);
+Texture2D normalTexture : register(t1);
+SamplerState samplerLinear : register(s0);
+
+PS_INPUT VS(VS_INPUT input)
+{
+    PS_INPUT o;
+    
+    // Transform to world space
+    float4 worldPos = mul(input.Pos, W);
+    o.WorldPos = worldPos.xyz;
+    o.Pos = mul(worldPos, VP);
+    
+    // Transform normal and tangent to world space
+    o.Normal = normalize(mul(input.Normal, (float3x3)W));
+    o.Tangent = normalize(mul(input.Tangent, (float3x3)W));
+    
+    // Calculate binormal
+    o.Binormal = normalize(cross(o.Normal, o.Tangent));
+    
+    o.TexCoords = input.TexCoords;
+    return o;
+}
+
+PS_OUTPUT PS(PS_INPUT input)
+{
+    PS_OUTPUT output;
+    
+    // Sample diffuse texture
+    float4 diffuse = diffuseTexture.Sample(samplerLinear, input.TexCoords);
+    
+    if (diffuse.a < alphaCutoff) 
+    {
+        discard;
+    }
+    
+    // Sample and decode normal map
+    float3 normalMap = normalTexture.Sample(samplerLinear, input.TexCoords).rgb;
+    normalMap = normalMap * 2.0 - 1.0;
+    
+    // Build TBN matrix
+    float3 N = normalize(input.Normal);
+    float3 T = normalize(input.Tangent);
+    float3 B = normalize(input.Binormal);
+    
+    // Ensure right-handed coordinate system
+    if (dot(cross(N, T), B) < 0.0)
+        T = T * -1.0;
+    
+    float3x3 TBN = float3x3(T, B, N);
+    
+    // Transform normal to world space
+    float3 worldNormal = normalize(mul(normalMap, TBN));
+    
+    // Output to G-Buffer
+    output.color = float4(diffuse.rgb, 1.0);
+    output.normal = float4(worldNormal * 0.5 + 0.5, 1.0);
+    
+    return output;
+}

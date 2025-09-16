@@ -1,100 +1,88 @@
 ﻿#pragma once
+#include "mathLib.h"
+#include <cmath>
 
-#include "mathLib.h" 
-#include <cmath>    
-#include <windows.h> 
-#include <dinput.h>  
+// Forward declaration
+class TRexPlayer;
 
-class Camera {
+// Third-Person Camera System
+class TPSCamera {
 public:
-    mathLib::Vec3 position;   
-    mathLib::Vec3 front;      
-    mathLib::Vec3 up;         
-    mathLib::Vec3 right;     
-    float yaw;                
-    float pitch;             
-    float speed;              
-    float sensitivity;        
+    mathLib::Vec3 position;
+    mathLib::Vec3 target;
+    mathLib::Vec3 up;
 
+    float distance;     
+    float height;        
+    float yaw;          
+    float pitch;        
 
-    mathLib::Vec3 armPositionOffset; 
-    float armYawOffset;      
-    float armPitchOffset;  
-    float armRollOffset;   
+    float mouseSensitivity;
+    float smoothness;  
 
-    Camera(mathLib::Vec3 startPosition = mathLib::Vec3(0.0f, 0.0f, 0.0f))
-        : position(startPosition),
-        yaw(-90.0f), pitch(0.0f),
-        speed(10.0f), sensitivity(0.01f),
-        armPositionOffset(1.0f, -0.1f, 0.0f),  
-        armYawOffset(0.0f),
-        armPitchOffset(0.0f),
-        armRollOffset(0.0f)
-    {
-        updateCameraVectors();
-        updateRotationMatrix();
+    TRexPlayer* player;
+
+    TPSCamera(TRexPlayer* targetPlayer = nullptr, float dist = 15.0f, float h = 8.0f)
+        : player(targetPlayer), distance(dist), height(h),
+        yaw(0), pitch(-25.0f), mouseSensitivity(0.15f), smoothness(8.0f) {
+        up = mathLib::Vec3(0, 1, 0);
+        position = mathLib::Vec3(0, height, distance);
+        target = mathLib::Vec3(0, 0, 0);
     }
 
-    // 更新摄像机视图矩阵
+    void bindPlayer(TRexPlayer* targetPlayer) {
+        player = targetPlayer;
+    }
+
+    mathLib::Vec3 getCameraPos() const {
+        return position;
+    }
+
+
+    void processMouseMovement(float dx, float dy) {
+        dx *= mouseSensitivity;
+        dy *= mouseSensitivity;
+
+        yaw += dx;  
+        pitch -= dy;
+
+        if (pitch > -5.0f) pitch = -5.0f;
+        if (pitch < -60.0f) pitch = -60.0f;
+
+        while (yaw > 360.0f) yaw -= 360.0f;
+        while (yaw < 0.0f) yaw += 360.0f;
+    }
+
+    void updatePosition(const mathLib::Vec3& playerPos, float dt) {
+        float radYaw = mathLib::radians(yaw);
+        float radPitch = mathLib::radians(pitch);
+
+        float offsetX = distance * std::cos(radPitch) * std::sin(radYaw);
+        float offsetY = height - distance * std::sin(radPitch);
+        float offsetZ = distance * std::cos(radPitch) * std::cos(radYaw);
+
+        mathLib::Vec3 desiredPosition = playerPos + mathLib::Vec3(offsetX, offsetY, offsetZ);
+
+        float lerpFactor = 1.0f - std::exp(-smoothness * dt);
+        position = position + (desiredPosition - position) * lerpFactor;
+
+        target = playerPos + mathLib::Vec3(0, 1.5f, 0);
+    }
+
     mathLib::Matrix getViewMatrix() {
-        mathLib::Vec3 to = position + front;
-        return mathLib::lookAt(position, to, up);
+        mathLib::Vec3 eye = position;
+        mathLib::Vec3 lookTarget = target;
+        mathLib::Vec3 upVec = up;
+        return mathLib::lookAt(eye, lookTarget, upVec);
     }
 
-    mathLib::Matrix getArmTransform() {
-        // 手臂相对于摄像机的偏移量（调整这个位置来放置手臂）
-        mathLib::Vec3 armOffset = right * 1.0f + up * 0.0f + front * 0.0f;
-        mathLib::Vec3 armPosition = position + armOffset;
-
-        mathLib::Matrix translation = mathLib::Matrix::translation(armPosition);
-        return translation * mathLib::Matrix::rotationYawPitch(yaw, pitch);
+    mathLib::Vec3 getCameraForward() const {
+        float radYaw = mathLib::radians(yaw);
+        return mathLib::Vec3(-std::sin(radYaw), 0, -std::cos(radYaw));
     }
 
-
-    // 键盘输入控制摄像机移动
-    void processKeyboard(float deltaTime, bool moveForward, bool moveBackward, bool moveLeft, bool moveRight) {
-        float velocity = speed * deltaTime;
-
-        if (moveForward) position = position + front * velocity;
-        if (moveBackward) position = position - front * velocity;
-        if (moveLeft) position = position - right * velocity;
-        if (moveRight) position = position + right * velocity;
+    mathLib::Vec3 getCameraRight() const {
+        float radYaw = mathLib::radians(yaw);
+        return mathLib::Vec3(std::cos(radYaw), 0, -std::sin(radYaw));
     }
-
-    // 鼠标输入控制摄像机视角
-    void processMouseMovement(float xOffset, float yOffset) {
-        xOffset *= sensitivity;
-        yOffset *= sensitivity;
-
-        yaw += xOffset;
-        pitch += yOffset;
-
-        if (pitch > 89.0f) pitch = 89.0f;
-        if (pitch < -89.0f) pitch = -89.0f;
-
-        updateCameraVectors();
-        updateRotationMatrix();
-    }
-
-private:
-    // 更新前向向量、右向向量和上向向量
-    mathLib::Matrix cameraRotationMatrix;
-
-    void updateCameraVectors() {
-        mathLib::Vec3 newFront;
-        newFront.x = cos(mathLib::radians(yaw)) * cos(mathLib::radians(pitch));
-        newFront.y = sin(mathLib::radians(pitch));
-        newFront.z = sin(mathLib::radians(yaw)) * cos(mathLib::radians(pitch));
-        front = newFront.normalize();
-        right = (front.cross(mathLib::Vec3(0.0f, 1.0f, 0.0f))).normalize();
-        up = right.cross(front).normalize();
-    }
-
-    void updateRotationMatrix() {
-        cameraRotationMatrix = mathLib::Matrix::rotationYawPitch(
-            mathLib::radians(yaw),
-            mathLib::radians(pitch)
-         );
-    }
-
 };

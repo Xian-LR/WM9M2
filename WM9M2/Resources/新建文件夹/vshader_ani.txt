@@ -1,0 +1,44 @@
+﻿cbuffer animatedMeshBuffer
+{
+	float4x4 W;
+	float4x4 VP;
+	float4x4 bones[256];
+};
+
+struct VS_INPUT {
+	float4 Pos        : POS;
+	float3 Normal     : NORMAL;
+	float3 Tangent    : TANGENT;
+	float2 TexCoords  : TEXCOORD;
+	uint4  BoneIDs    : BONEIDS;
+	float4 BoneWeights: BONEWEIGHTS;
+};
+
+struct PS_INPUT {
+	float4 Pos        : SV_POSITION;
+	float3 Normal     : NORMAL;
+	float3 Tangent    : TANGENT;
+	float2 TexCoords  : TEXCOORD0;
+};
+
+PS_INPUT VS(VS_INPUT input)
+{
+	PS_INPUT o;
+
+	// 线性蒙皮（4 骨骼）
+	float4x4 T =
+		  bones[input.BoneIDs.x] * input.BoneWeights.x
+		+ bones[input.BoneIDs.y] * input.BoneWeights.y
+		+ bones[input.BoneIDs.z] * input.BoneWeights.z
+		+ bones[input.BoneIDs.w] * input.BoneWeights.w;
+
+	float4 wpos = mul(mul(input.Pos, T), W);
+	o.Pos       = mul(wpos, VP);
+
+	float3x3 TW = (float3x3)mul(T, W);
+	o.Normal    = normalize(mul(input.Normal,  TW));
+	o.Tangent   = normalize(mul(input.Tangent, TW));
+
+	o.TexCoords = input.TexCoords;
+	return o;
+}
